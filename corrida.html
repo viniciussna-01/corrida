@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Corrida">
+<title>Calculadora de Corrida</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #0a0a0f;
+    --card: #12121a;
+    --border: #1e1e2e;
+    --accent: #f0c040;
+    --green: #3dffa0;
+    --red: #ff4f6a;
+    --muted: #4a4a6a;
+    --text: #e8e8f0;
+    --text2: #9090b0;
+  }
+
+  body {
+    background: var(--bg);
+    font-family: 'Syne', sans-serif;
+    color: var(--text);
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    padding: env(safe-area-inset-top, 20px) 20px env(safe-area-inset-bottom, 20px);
+    overflow-x: hidden;
+  }
+
+  /* Grain texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.6;
+  }
+
+  .container { position: relative; z-index: 1; width: 100%; max-width: 420px; margin: 0 auto; flex: 1; display: flex; flex-direction: column; gap: 16px; }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0 4px;
+  }
+  .header-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .header-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    background: rgba(240,192,64,0.08);
+    border: 1px solid rgba(240,192,64,0.2);
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+  /* Inputs */
+  .inputs-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .input-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .input-wrap:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(240,192,64,0.1);
+  }
+  .input-prefix {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    padding: 0 0 0 8px;
+    white-space: nowrap;
+  }
+  .input-field {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 12px 8px 12px 4px;
+    width: 100%;
+    min-width: 0;
+  }
+  .input-field::placeholder { color: var(--muted); opacity: 0.5; }
+
+  /* Divider */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--muted);
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Results */
+  .results {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .result-card {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.3s;
+  }
+  .result-card.highlight {
+    border-color: rgba(240,192,64,0.3);
+    background: rgba(240,192,64,0.05);
+  }
+
+  .result-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .result-name {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .result-desc {
+    font-size: 9px;
+    color: var(--muted);
+    opacity: 0.6;
+  }
+  .result-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+  }
+  .result-value.big {
+    font-size: 26px;
+  }
+  .result-value span {
+    font-size: 12px;
+    opacity: 0.6;
+  }
+  .result-value.empty { color: var(--muted); opacity: 0.4; font-size: 18px; }
+
+  /* Score badge */
+  .score-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 20px;
+    margin-top: 4px;
+  }
+  .score-badge.boa { background: rgba(61,255,160,0.1); color: var(--green); border: 1px solid rgba(61,255,160,0.2); }
+  .score-badge.ok { background: rgba(240,192,64,0.1); color: var(--accent); border: 1px solid rgba(240,192,64,0.2); }
+  .score-badge.ruim { background: rgba(255,79,106,0.1); color: var(--red); border: 1px solid rgba(255,79,106,0.2); }
+
+  /* Buttons */
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 4px;
+  }
+  .btn {
+    border: none;
+    border-radius: 16px;
+    padding: 18px 10px;
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .btn:active { transform: scale(0.95); }
+  .btn-accept {
+    background: var(--green);
+    color: #062214;
+  }
+  .btn-decline {
+    background: var(--red);
+    color: #fff;
+  }
+  .btn-icon { font-size: 22px; }
+  .btn-sub { font-size: 9px; opacity: 0.7; font-weight: 400; letter-spacing: 0.1em; }
+
+  /* Clear */
+  .btn-clear {
+    background: transparent;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.2s;
+    touch-action: manipulation;
+  }
+  .btn-clear:active { opacity: 0.6; }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    font-size: 9px;
+    color: var(--muted);
+    opacity: 0.4;
+    padding-bottom: 8px;
+    letter-spacing: 0.1em;
+  }
+
+  /* Refs row */
+  .refs-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .ref-chip {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    touch-action: manipulation;
+  }
+  .ref-chip:active { background: rgba(240,192,64,0.1); border-color: var(--accent); }
+  .ref-label { font-size: 8px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 2px; }
+  .ref-value { font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; color: var(--text2); }
+
+  /* Animations */
+  .result-card { animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(4px); } to { opacity:1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="header-title">Calculadora de Corrida</div>
+    <div class="header-badge"><div class="dot"></div>Uber · 99</div>
+  </div>
+
+  <!-- Inputs -->
+  <div class="inputs-row">
+    <div class="input-group">
+      <div class="input-label">Valor (R$)</div>
+      <div class="input-wrap">
+        <span class="input-prefix">R$</span>
+        <input class="input-field" id="valor" type="number" inputmode="decimal" placeholder="0,00" step="0.01" min="0" oninput="calcular()">
+      </div>
+    </div>
+    <div class="input-group">
+      <div class="input-label">KM</div>
+      <div class="input-wrap">
+        <input class="input-field" id="km" type="number" inputmode="decimal" placeholder="0,0" step="0.1" min="0" oninput="calcular()">
+        <span class="input-prefix" style="padding:0 8px 0 0">km</span>
+      </div>
+    </div>
+    <div class="input-group">
+      <div class="input-label">Minutos</div>
+      <div class="input-wrap">
+        <input class="input-field" id="min" type="number" inputmode="decimal" placeholder="0" step="1" min="0" oninput="calcular()">
+        <span class="input-prefix" style="padding:0 8px 0 0">min</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Refs rápidos -->
+  <div class="refs-row">
+    <div class="ref-chip" onclick="setRef(12,5,10)"><div class="ref-label">Curta</div><div class="ref-value">5km 10min</div></div>
+    <div class="ref-chip" onclick="setRef(25,12,20)"><div class="ref-label">Média</div><div class="ref-value">12km 20min</div></div>
+    <div class="ref-chip" onclick="setRef(60,28,45)"><div class="ref-label">Longa</div><div class="ref-value">28km 45min</div></div>
+  </div>
+
+  <div class="divider">métricas</div>
+
+  <!-- Results -->
+  <div class="results">
+
+    <div class="result-card" id="card-km">
+      <div class="result-label">
+        <div class="result-name">Por Quilômetro</div>
+        <div class="result-desc">rendimento por km rodado</div>
+        <div id="badge-km"></div>
+      </div>
+      <div class="result-value" id="val-km">—</div>
+    </div>
+
+    <div class="result-card" id="card-min">
+      <div class="result-label">
+        <div class="result-name">Por Minuto</div>
+        <div class="result-desc">rendimento por minuto</div>
+      </div>
+      <div class="result-value" id="val-min">—</div>
+    </div>
+
+    <div class="result-card highlight" id="card-hora">
+      <div class="result-label">
+        <div class="result-name">Por Hora</div>
+        <div class="result-desc">se manter esse ritmo</div>
+        <div id="badge-hora"></div>
+      </div>
+      <div class="result-value big" id="val-hora">—</div>
+    </div>
+
+  </div>
+
+  <div class="divider">decisão</div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="btn btn-accept" onclick="aceitar()">
+      <span class="btn-icon">✓</span>
+      ACEITAR
+      <span class="btn-sub">vale a pena</span>
+    </button>
+    <button class="btn btn-decline" onclick="declinar()">
+      <span class="btn-icon">✕</span>
+      DECLINAR
+      <span class="btn-sub">próxima</span>
+    </button>
+  </div>
+
+  <button class="btn-clear" onclick="limpar()">↺ limpar</button>
+
+  <div class="footer">Vinicius · Salve como atalho na tela inicial</div>
+</div>
+
+<script>
+const REFS = {
+  kmBoa: 2.50,    // R$/km considerado bom
+  kmOk: 1.80,
+  horaOk: 25,
+  horaBoa: 35,
+};
+
+function fmt(val) {
+  return 'R$ ' + val.toFixed(2).replace('.', ',');
+}
+
+function calcular() {
+  const valor = parseFloat(document.getElementById('valor').value) || 0;
+  const km    = parseFloat(document.getElementById('km').value) || 0;
+  const min   = parseFloat(document.getElementById('min').value) || 0;
+
+  // R$/km
+  const cardKm = document.getElementById('card-km');
+  const valKm  = document.getElementById('val-km');
+  const badgeKm = document.getElementById('badge-km');
+  if (valor > 0 && km > 0) {
+    const rkm = valor / km;
+    valKm.className = 'result-value';
+    valKm.innerHTML = fmt(rkm) + '<span>/km</span>';
+    // Badge
+    let cls, txt;
+    if (rkm >= REFS.kmBoa)      { cls='boa'; txt='● Boa corrida'; }
+    else if (rkm >= REFS.kmOk)  { cls='ok';  txt='● Razoável'; }
+    else                         { cls='ruim'; txt='● Fraca por km'; }
+    badgeKm.innerHTML = `<span class="score-badge ${cls}">${txt}</span>`;
+    cardKm.classList.toggle('highlight', rkm >= REFS.kmBoa);
+  } else {
+    valKm.className = 'result-value empty';
+    valKm.innerHTML = '—';
+    badgeKm.innerHTML = '';
+    cardKm.classList.remove('highlight');
+  }
+
+  // R$/min
+  const valMin = document.getElementById('val-min');
+  if (valor > 0 && min > 0) {
+    const rmin = valor / min;
+    valMin.className = 'result-value';
+    valMin.innerHTML = fmt(rmin) + '<span>/min</span>';
+  } else {
+    valMin.className = 'result-value empty';
+    valMin.innerHTML = '—';
+  }
+
+  // R$/hora
+  const cardHora  = document.getElementById('card-hora');
+  const valHora   = document.getElementById('val-hora');
+  const badgeHora = document.getElementById('badge-hora');
+  if (valor > 0 && min > 0) {
+    const rhora = (valor / min) * 60;
+    valHora.className = 'result-value big';
+    valHora.innerHTML = fmt(rhora) + '<span>/h</span>';
+    let cls, txt;
+    if (rhora >= REFS.horaBoa)    { cls='boa';  txt='● Hora excelente'; }
+    else if (rhora >= REFS.horaOk){ cls='ok';   txt='● Aceitável'; }
+    else                          { cls='ruim'; txt='● Abaixo do ideal'; }
+    badgeHora.innerHTML = `<span class="score-badge ${cls}">${txt}</span>`;
+  } else {
+    valHora.className = 'result-value big empty';
+    valHora.innerHTML = '—';
+    badgeHora.innerHTML = '';
+  }
+}
+
+function limpar() {
+  ['valor','km','min'].forEach(id => document.getElementById(id).value = '');
+  calcular();
+  // Reset highlights
+  document.getElementById('card-hora').classList.add('highlight');
+}
+
+function aceitar() {
+  const v = document.getElementById('valor').value;
+  if (!v) { alert('Digite o valor da corrida antes!'); return; }
+  // Vibra se disponível
+  if (navigator.vibrate) navigator.vibrate([50, 30, 100]);
+  document.body.style.background = '#0a1a10';
+  setTimeout(() => { document.body.style.background = 'var(--bg)'; limpar(); }, 600);
+}
+
+function declinar() {
+  if (navigator.vibrate) navigator.vibrate(80);
+  document.body.style.background = '#1a0a10';
+  setTimeout(() => { document.body.style.background = 'var(--bg)'; limpar(); }, 600);
+}
+
+function setRef(valor, km, min) {
+  document.getElementById('valor').value = valor;
+  document.getElementById('km').value = km;
+  document.getElementById('min').value = min;
+  calcular();
+}
+</script>
+</body>
+</html>
